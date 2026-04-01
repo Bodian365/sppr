@@ -4,6 +4,7 @@ const decisionService = require("./decisionService");
 
 const app = express();
 app.use(express.json());
+app.use(express.static("public"));
 
 app.post("/alternatives", (req, res) => {
   const { name, description } = req.body;
@@ -59,8 +60,26 @@ app.get("/matrix", (req, res) => {
 });
 
 app.get("/analyze", (req, res) => {
-  const result = decisionService.calculateSAW();
-  res.json(result);
+  // Витягуємо всі необхідні дані з БД паралельно або послідовно
+  db.all(`SELECT * FROM alternatives`, [], (err, alternatives) => {
+    if (err) return res.status(500).json({ error: err.message });
+
+    db.all(`SELECT * FROM criteria`, [], (err, criteria) => {
+      if (err) return res.status(500).json({ error: err.message });
+
+      db.all(`SELECT * FROM evaluations`, [], (err, evaluations) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        // Передаємо дані в аналітичний блок
+        const result = decisionService.calculateSAW(
+          alternatives,
+          criteria,
+          evaluations,
+        );
+        res.json(result);
+      });
+    });
+  });
 });
 
 const PORT = 3000;
