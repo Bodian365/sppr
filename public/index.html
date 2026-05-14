@@ -3,86 +3,256 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Візуалізація СППР</title>
+    <title>СППР - Система підтримки прийняття рішень (ЛР2)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js" defer></script>
     <style>
+      :root {
+        --primary: #2c3e50;
+        --accent: #3498db;
+        --bg: #f8f9fa;
+      }
       body {
-        font-family: Arial, sans-serif;
-        max-width: 800px;
-        margin: 40px auto;
+        font-family: "Segoe UI", sans-serif;
+        background: var(--bg);
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+      }
+      nav {
+        background: var(--primary);
+        display: flex;
+        justify-content: center;
+        padding: 10px 0;
+      }
+      nav button {
+        background: none;
+        border: none;
+        color: white;
+        padding: 10px 20px;
+        cursor: pointer;
+        font-size: 16px;
+        border-bottom: 3px solid transparent;
+      }
+      nav button.active {
+        border-bottom: 3px solid var(--accent);
+        background: rgba(255, 255, 255, 0.1);
+      }
+      .container {
+        flex: 1;
         padding: 20px;
+        max-width: 1000px;
+        margin: 0 auto;
+        width: 100%;
+        overflow-y: auto;
+      }
+      .tab-content {
+        display: none;
+        background: white;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .tab-content.active {
+        display: block;
+      }
+      .card {
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+      }
+      label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      input,
+      select,
+      textarea {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+      .btn {
+        background: var(--accent);
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        width: 100%;
+        margin-top: 10px;
+      }
+      .btn:hover {
+        opacity: 0.9;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+      }
+      table,
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 10px;
+        text-align: left;
+      }
+      th {
+        background: #eee;
       }
       .result-box {
-        padding: 20px;
-        background-color: #f4f4f9;
-        border-left: 5px solid #4caf50;
-        border-radius: 5px;
-        margin-bottom: 20px;
+        background: #e8f4fd;
+        border-left: 5px solid var(--accent);
+        padding: 15px;
+        margin: 20px 0;
       }
-      h1 {
-        color: #333;
+      .slider-group {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
       }
-      .best {
-        color: #4caf50;
-        font-size: 24px;
-        font-weight: bold;
+      .slider-group input {
+        width: 60%;
+        margin: 0 15px;
       }
     </style>
   </head>
   <body>
-    <h1>Система підтримки прийняття рішень (SAW)</h1>
+    <nav>
+      <button onclick="showTab('expertise')" id="nav-expertise">
+        Експертиза
+      </button>
+      <button onclick="showTab('data')" id="nav-data" class="active">
+        Модель та Дані
+      </button>
+      <button onclick="showTab('logic')" id="nav-logic">
+        Експертна логіка
+      </button>
+      <button onclick="showTab('results')" id="nav-results">
+        Результати та Аналіз
+      </button>
+    </nav>
 
-    <div class="result-box">
-      <div class="best" id="best-alt">Завантаження результатів...</div>
-      <p id="explanation"></p>
+    <div class="container">
+      <div id="expertise" class="tab-content">
+        <h2>Експертиза (Голосування та Узгодження)</h2>
+        <div class="card">
+          <h3>Імпорт даних</h3>
+          <label>Режим завантаження:</label>
+          <select id="import-mode">
+            <option value="weights">
+              Голосування за ВАГИ (Борда, Кондорсе тощо)
+            </option>
+            <option value="values">
+              Оцінки АЛЬТЕРНАТИВ (Узгодження значень)
+            </option>
+          </select>
+          <label style="margin-top: 10px">Метод обробки:</label>
+          <select id="import-method">
+            <optgroup label="Для Ваг (Голосування)">
+              <option value="borda">Правило Борда</option>
+              <option value="condorcet">Правило Кондорсе</option>
+              <option value="relative_majority">Відносна більшість</option>
+              <option value="absolute_majority">Абсолютна більшість</option>
+            </optgroup>
+            <optgroup label="Для Альтернатив (Узгодження)">
+              <option value="mean">Середнє арифметичне</option>
+              <option value="median">Медіана</option>
+            </optgroup>
+          </select>
+
+          <h4 style="margin-top: 15px">Джерело даних</h4>
+          <input
+            type="text"
+            id="import-url"
+            placeholder="URL Google Sheets (публічний CSV)"
+          />
+          <p style="text-align: center; margin: 5px 0">АБО</p>
+          <input type="file" id="import-file" />
+          <button class="btn" onclick="importData()">
+            Завантажити та обробити
+          </button>
+        </div>
+      </div>
+
+      <div id="data" class="tab-content active">
+        <h2>Керування Моделлю</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px">
+          <div class="card">
+            <h3>Альтернатива</h3>
+            <input type="text" id="alt-name" placeholder="Назва" />
+            <button class="btn" onclick="addAlternative()">Зберегти</button>
+          </div>
+          <div class="card">
+            <h3>Критерій</h3>
+            <input type="text" id="crit-name" placeholder="Назва" />
+            <select id="crit-type" style="margin-top: 5px">
+              <option value="maximize">Maximize (більше - краще)</option>
+              <option value="minimize">Minimize (менше - краще)</option>
+            </select>
+            <button class="btn" onclick="addCriterion()">Зберегти</button>
+          </div>
+        </div>
+        <div id="data-tables"><p>Завантаження...</p></div>
+      </div>
+
+      <div id="logic" class="tab-content">
+        <h2>Експертні правила IF-THEN</h2>
+        <div class="card">
+          <select id="rule-crit-id"></select>
+          <select id="rule-condition" style="margin-top: 5px">
+            <option value=">">Більше ніж (>)</option>
+            <option value="<">Менше ніж (<)</option>
+            <option value="==">Дорівнює (==)</option>
+          </select>
+          <input
+            type="number"
+            id="rule-threshold"
+            placeholder="Поріг"
+            style="margin-top: 5px"
+          />
+          <select id="rule-action" style="margin-top: 5px">
+            <option value="filter">Відсіяти варіант</option>
+            <option value="multiply">Помножити бал на (штраф/бонус)</option>
+          </select>
+          <input
+            type="number"
+            id="rule-val"
+            placeholder="Значення дії (напр. 0.8)"
+            style="margin-top: 5px"
+          />
+          <button class="btn" onclick="addRule()">Додати правило</button>
+        </div>
+      </div>
+
+      <div id="results" class="tab-content">
+        <h2>Результати та Аналіз Чутливості</h2>
+        <div class="card">
+          <label>Оберіть метод згортки:</label>
+          <select id="method-select" onchange="loadResults()">
+            <option value="saw">SAW (Адитивна згортка)</option>
+            <option value="mult">Мультиплікативна згортка</option>
+            <option value="wald">Критерій Вальда (Обережна стратегія)</option>
+          </select>
+        </div>
+
+        <div class="card" id="sensitivity-card">
+          <h3>Аналіз чутливості (Зміна ваг)</h3>
+          <div id="sensitivity-sliders"></div>
+        </div>
+
+        <div class="result-box">
+          <h3 id="best-alt">🏆 Очікування розрахунку...</h3>
+          <p id="explanation"></p>
+        </div>
+        <canvas id="resultsChart"></canvas>
+      </div>
     </div>
-
-    <canvas id="resultsChart"></canvas>
-
-    <script>
-      fetch("/analyze")
-        .then((response) => response.json())
-        .then((data) => {
-          document.getElementById("best-alt").innerText =
-            "🏆 Найкращий вибір: " + data.best_alternative;
-          document.getElementById("explanation").innerText = data.explanation;
-
-          // Підготовка даних для графіка
-          const labels = data.ranking.map((item) => item.name);
-          const scores = data.ranking.map((item) => item.score);
-
-          // Малюємо графік
-          const ctx = document.getElementById("resultsChart").getContext("2d");
-          new Chart(ctx, {
-            type: "bar", // Тип графіка - стовпчикова діаграма
-            data: {
-              labels: labels,
-              datasets: [
-                {
-                  label: "Інтегральна оцінка (від 0 до 1)",
-                  data: scores,
-                  backgroundColor: [
-                    "rgba(76, 175, 80, 0.7)",
-                    "rgba(54, 162, 235, 0.7)",
-                    "rgba(255, 159, 64, 0.7)",
-                  ],
-                  borderColor: [
-                    "rgba(76, 175, 80, 1)",
-                    "rgba(54, 162, 235, 1)",
-                    "rgba(255, 159, 64, 1)",
-                  ],
-                  borderWidth: 1,
-                },
-              ],
-            },
-            options: {
-              scales: {
-                y: { beginAtZero: true, max: 1 },
-              },
-            },
-          });
-        })
-        .catch((error) => console.error("Помилка завантаження:", error));
-    </script>
   </body>
 </html>
