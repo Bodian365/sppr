@@ -86,7 +86,6 @@ class DecisionService {
   }
 
   // --- 3. АНАЛІЗ АЛЬТЕРНАТИВ ТА ПОЯСНЕННЯ ---
-  // --- 3. АНАЛІЗ АЛЬТЕРНАТИВ ТА ПОЯСНЕННЯ ---
   analyze(alternatives, criteria, evaluations, rules, method = "saw") {
     if (!alternatives.length || !criteria.length) {
       return { error: "Недостатньо даних для розрахунку." };
