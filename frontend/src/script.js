@@ -22,7 +22,7 @@ function showTab(tabId) {
 async function addAlternative() {
   const name = document.getElementById("alt-name").value;
   if (!name) return alert("Введіть назву");
-  await fetch("/alternatives", {
+  await fetch("/api/alternatives", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name }),
@@ -33,7 +33,7 @@ async function addAlternative() {
 
 async function deleteAlternative(id) {
   if (!confirm("Видалити?")) return;
-  await fetch(`/alternatives/${id}`, { method: "DELETE" });
+  await fetch(`/api/alternatives/${id}`, { method: "DELETE" });
   loadData();
 }
 
@@ -41,7 +41,7 @@ async function addCriterion() {
   const name = document.getElementById("crit-name").value;
   const type = document.getElementById("crit-type").value;
   if (!name) return alert("Заповніть назву");
-  await fetch("/criteria", {
+  await fetch("/api/criteria", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, type, weight: 0 }),
@@ -52,12 +52,12 @@ async function addCriterion() {
 
 async function deleteCriterion(id) {
   if (!confirm("Видалити?")) return;
-  await fetch(`/criteria/${id}`, { method: "DELETE" });
+  await fetch(`/api/criteria/${id}`, { method: "DELETE" });
   loadData();
 }
 
 async function saveEvaluation(altId, critId, value) {
-  await fetch("/evaluations", {
+  await fetch("/api/evaluations", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -69,9 +69,9 @@ async function saveEvaluation(altId, critId, value) {
 }
 
 async function loadData() {
-  const alts = await (await fetch("/alternatives")).json();
-  const crits = await (await fetch("/criteria")).json();
-  const evals = await (await fetch("/evaluations")).json();
+  const alts = await (await fetch("/api/alternatives")).json();
+  const crits = await (await fetch("/api/criteria")).json();
+  const evals = await (await fetch("/api/evaluations")).json();
 
   const evalMap = {};
   evals.forEach((e) => {
@@ -109,7 +109,10 @@ async function importData() {
   if (url) formData.append("url", url);
   if (fileInput.files[0]) formData.append("expert_file", fileInput.files[0]);
 
-  const response = await fetch("/import", { method: "POST", body: formData });
+  const response = await fetch("/api/import", {
+    method: "POST",
+    body: formData,
+  });
   const result = await response.json();
   alert(result.message || result.error);
 }
@@ -122,7 +125,7 @@ async function addRule() {
     action_type: document.getElementById("rule-action").value,
     action_value: parseFloat(document.getElementById("rule-val").value || 0),
   };
-  await fetch("/rules", {
+  await fetch("/api/rules", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -131,7 +134,7 @@ async function addRule() {
 }
 
 async function loadCriteriaForRules() {
-  const crits = await (await fetch("/criteria")).json();
+  const crits = await (await fetch("/api/criteria")).json();
   document.getElementById("rule-crit-id").innerHTML = crits
     .map((c) => `<option value="${c.id}">${c.name}</option>`)
     .join("");
@@ -139,7 +142,7 @@ async function loadCriteriaForRules() {
 
 // --- Аналіз чутливості та результати ---
 async function loadSensitivitySliders() {
-  const crits = await (await fetch("/criteria")).json();
+  const crits = await (await fetch("/api/criteria")).json();
   let html = "";
   crits.forEach((c) => {
     html += `<div class="slider-group">
@@ -160,7 +163,7 @@ async function updateSensitivity(critId, val) {
 
 async function loadResults() {
   const method = document.getElementById("method-select").value;
-  let url = `/analyze?method=${method}`;
+  let url = `/api/analyze?method=${method}`;
   if (Object.keys(sensitivityState).length > 0) {
     url += `&sensitivity=${encodeURIComponent(JSON.stringify(sensitivityState))}`;
   }
