@@ -103,14 +103,14 @@ class DecisionService {
         .filter((e) => e.criterion_id === c.id)
         .map((e) => e.value);
 
-      // Виправлено: тепер система шукає реальні мінімуми та максимуми
       if (vals.length > 0) {
         minMax[c.id] = {
           min: Math.min(...vals),
           max: Math.max(...vals),
+          isEmpty: false,
         };
       } else {
-        minMax[c.id] = { min: 0.001, max: 1 };
+        minMax[c.id] = { min: 0, max: 1, isEmpty: true };
       }
     });
 
@@ -138,25 +138,36 @@ class DecisionService {
       if (isFiltered) return null;
 
       criteria.forEach((c) => {
-        const raw =
-          matrix[alt.id]?.[c.id] !== undefined ? matrix[alt.id][c.id] : 0.001;
-        const mm = minMax[c.id];
+        if (minMax[c.id].isEmpty) return;
 
+        let raw = matrix[alt.id]?.[c.id];
+        if (raw === undefined || raw === null) raw = 0;
+
+        const mm = minMax[c.id];
         let norm = 1;
-        // Виправлена логіка нормалізації з захистом від ділення на нуль
+
         if (c.type === "maximize") {
-          norm = raw / (mm.max === 0 ? 1 : mm.max);
+          const maxVal = mm.max <= 0 ? 0.001 : mm.max;
+          norm = raw / maxVal;
         } else {
-          norm = (mm.min === 0 ? 0.001 : mm.min) / (raw === 0 ? 0.001 : raw);
+          const minVal = mm.min <= 0 ? 0.001 : mm.min;
+          const rawVal = raw <= 0 ? 0.001 : raw;
+          norm = minVal / rawVal;
         }
 
-        if (method === "saw") score += norm * c.weight;
-        if (method === "mult") score *= Math.pow(norm, c.weight);
-        if (method === "wald") waldValues.push(norm * c.weight);
+        norm = Math.max(0.001, norm);
+
+        if (method === "saw") {
+          score += norm * c.weight;
+        } else if (method === "mult") {
+          score *= Math.pow(norm, c.weight);
+        } else if (method === "wald") {
+          waldValues.push(norm * c.weight);
+        }
       });
 
       if (method === "wald") {
-        score = waldValues.length ? Math.min(...waldValues) : 0;
+        score = waldValues.length > 0 ? Math.min(...waldValues) : 0;
       }
 
       rules.forEach((rule) => {
@@ -186,10 +197,19 @@ class DecisionService {
       return { error: "Всі альтернативи відфільтровані правилами." };
 
     const best = results[0];
-    const topCrit = [...criteria].sort((a, b) => b.weight - a.weight)[0];
-    let explanation = `Цей вибір обумовлений найбільшим впливом критерію "${topCrit.name}", який має вагу ${(topCrit.weight * 100).toFixed(1)}%. `;
+    let explanation = "";
+
+    if (method === "saw") {
+      const topCrit = [...criteria].sort((a, b) => b.weight - a.weight)[0];
+      explanation = `Цей вибір обумовлений найбільшим впливом критерію "${topCrit.name}" (${(topCrit.weight * 100).toFixed(1)}%). `;
+    } else if (method === "mult") {
+      explanation = `Мультиплікативна згортка віддала перевагу варіанту, який має найменше слабких місць. `;
+    } else if (method === "wald") {
+      explanation = `За критерієм Вальда цей варіант є найбезпечнішим, оскільки його "найслабше" місце краще, ніж найслабші місця інших альтернатив. `;
+    }
+
     if (best.rules.length > 0) {
-      explanation += `Також до цієї альтернативи було успішно застосовано ${best.rules.length} логічних правил.`;
+      explanation += `Також до лідера було успішно застосовано ${best.rules.length} логічних правил.`;
     }
 
     return {

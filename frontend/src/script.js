@@ -1,3 +1,5 @@
+import Chart from "chart.js/auto";
+
 let sensitivityState = {};
 
 function showTab(tabId) {
@@ -130,7 +132,17 @@ async function addRule() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
+
+  document.getElementById("rule-threshold").value = "";
   alert("Правило збережено");
+
+  loadCriteriaForRules();
+}
+
+async function deleteRule(id) {
+  if (!confirm("Видалити це правило?")) return;
+  await fetch(`/api/rules/${id}`, { method: "DELETE" });
+  loadCriteriaForRules();
 }
 
 async function loadCriteriaForRules() {
@@ -138,6 +150,36 @@ async function loadCriteriaForRules() {
   document.getElementById("rule-crit-id").innerHTML = crits
     .map((c) => `<option value="${c.id}">${c.name}</option>`)
     .join("");
+
+  const critMap = {};
+  crits.forEach((c) => (critMap[c.id] = c.name));
+
+  const rules = await (await fetch("/api/rules")).json();
+
+  let html = "<h4>Поточні правила логіки</h4>";
+  if (rules.length === 0) {
+    html += "<p>Правил поки немає</p>";
+  } else {
+    html +=
+      "<table><tr><th>Критерій</th><th>Умова</th><th>Поріг</th><th>Дія</th><th>Значення</th><th>Дії</th></tr>";
+    rules.forEach((r) => {
+      const critName = critMap[r.criterion_id] || `Критерій #${r.criterion_id}`;
+      const actionText =
+        r.action_type === "filter" ? "Відсіяти варіант" : "Помножити вагу";
+
+      html += `<tr>
+        <td>${critName}</td>
+        <td><strong>${r.condition_type}</strong></td>
+        <td>${r.threshold}</td>
+        <td>${actionText}</td>
+        <td>${r.action_type === "filter" ? "-" : r.action_value}</td>
+        <td><button onclick="deleteRule(${r.id})">❌ Видалити</button></td>
+      </tr>`;
+    });
+    html += "</table>";
+  }
+
+  document.getElementById("rules-list").innerHTML = html;
 }
 
 // --- Аналіз чутливості та результати ---
@@ -198,3 +240,14 @@ async function loadResults() {
 }
 
 window.onload = loadData;
+window.showTab = showTab;
+window.addAlternative = addAlternative;
+window.deleteAlternative = deleteAlternative;
+window.addCriterion = addCriterion;
+window.deleteCriterion = deleteCriterion;
+window.saveEvaluation = saveEvaluation;
+window.importData = importData;
+window.addRule = addRule;
+window.deleteRule = deleteRule;
+window.updateSensitivity = updateSensitivity;
+window.loadResults = loadResults;

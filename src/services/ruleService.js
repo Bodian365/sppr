@@ -14,5 +14,9 @@ class RuleService {
   async getAllRules() {
     return await ruleRepo.findAll();
   }
+  async removeRule(id) {
+    if (!id) throw new Error("ID правила є обов'язковим");
+    return await ruleRepo.deleteById(id);
+  }
 }
 module.exports = new RuleService();

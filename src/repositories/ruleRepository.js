@@ -29,5 +29,13 @@ class RuleRepository {
       });
     });
   }
+  async deleteById(id) {
+    return new Promise((resolve, reject) => {
+      db.run(`DELETE FROM rules WHERE id = ?`, [id], function (err) {
+        if (err) return reject(err);
+        resolve(this.changes > 0);
+      });
+    });
+  }
 }
 module.exports = new RuleRepository();
