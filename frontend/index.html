@@ -4,8 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>СППР - Система підтримки прийняття рішень (ЛР2)</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="./src/script.js" defer></script>
+    <script type="module" src="./src/script.js"></script>
     <style>
       :root {
         --primary: #2c3e50;
@@ -209,7 +208,7 @@
           <select id="rule-condition" style="margin-top: 5px">
             <option value=">">Більше ніж (>)</option>
             <option value="&lt;">Менше ніж (&lt;)</option>
-            <option value="==">Дорівнює (==)</option>
+            <option value="==">Дорівнює (=)</option>
           </select>
           <input
             type="number"
@@ -229,6 +228,7 @@
           />
           <button class="btn" onclick="addRule()">Додати правило</button>
         </div>
+        <div id="rules-list" style="margin-top: 20px"></div>
       </div>
 
       <div id="results" class="tab-content">

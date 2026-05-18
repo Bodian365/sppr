@@ -17,5 +17,13 @@ class RuleController {
       res.status(500).json({ error: "Помилка отримання правил" });
     }
   }
+  async delete(req, res) {
+    try {
+      await ruleService.removeRule(req.params.id);
+      res.json({ message: "Правило успішно видалено" });
+    } catch (error) {
+      res.status(500).json({ error: "Помилка при видаленні правила" });
+    }
+  }
 }
 module.exports = new RuleController();
